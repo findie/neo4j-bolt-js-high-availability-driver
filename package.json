@@ -1,0 +1,25 @@
+{
+  "name": "neo4j-javascript-driver-hs-wrapper",
+  "version": "0.0.1",
+  "description": "Oficial Neo4j Bolt driver wrapped in a layer of High Availability",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "neo4j",
+    "bolt",
+    "ha",
+    "high",
+    "availability",
+    "official",
+    "driver"
+  ],
+  "author": "Stefan-Gabriel Muscalu <stefan.gabriel.muscalu@gmail.com> (http://my.corneroftheinternet.rocks/)",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.0.0-rc.5",
+    "neo4j-driver": "^1.0.1",
+    "request": "^2.72.0"
+  }
+}

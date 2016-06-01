@@ -253,15 +253,12 @@ class Session {
     }
 
     _retry(query, params, promiseEmulated) {
-        console.error('Averting downed server!~~~~~~~~~~~~~~~~~~~~~~~~~~', this._server.location.bolt);
-
         this._session.close();
         this._server.info.status = Status.unknown;
 
         this._getSession();
 
         setImmediate(() => {
-            console.error('query will retry with ', this._server.location.bolt);
             this._runQuery(query, params, promiseEmulated, 1);
         });
     }

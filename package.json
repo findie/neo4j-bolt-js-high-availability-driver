@@ -1,10 +1,14 @@
 {
-  "name": "neo4j-javascript-driver-hs-wrapper",
-  "version": "0.0.1",
+  "name": "neo4j-ha-bolt-driver",
+  "version": "1.0.0",
   "description": "Oficial Neo4j Bolt driver wrapped in a layer of High Availability",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/findie/neo4j-bolt-js-high-availability-driver"
+  },
+  "engines": {
+    "node": ">=4.3.0"
   },
   "keywords": [
     "neo4j",

@@ -7,7 +7,7 @@
 const HAStrategies = {
     random: 0,
     roundRobin: 1,
-    nearest: 2,
+    nearest: 2
 };
 
 /**
@@ -49,7 +49,7 @@ const Status = {
  * @enum {Number}
  */
 const ServerType = {
-    unknown: -1,
+    unknown: 0,
     slave: 1,
     master: 2
 };

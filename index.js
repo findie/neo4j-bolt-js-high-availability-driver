@@ -273,4 +273,7 @@ class Session {
 }
 
 module.exports = Neo4jHA;
+module.exports.Status = Status;
+module.exports.ServerType = ServerType;
+module.exports.HAReadWrite = HAReadWrite;
 module.exports.HAStrategies = HAStrategies;

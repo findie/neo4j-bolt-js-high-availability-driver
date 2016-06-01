@@ -96,10 +96,11 @@ Where:
 - `readyCallback`: callback when all servers status is known 
 
 # Usage
-`const session = driver.session(writeLock);`
+`const session = driver.session(writeLock[, rwConfig, strategy]);`
 Where: 
 - `writeLock`: Boolean - Tell the driver ifif there will ve any writes in the session
-
+- `rwConfig`: custom HAReadWriteConfig for that session
+- `strategy`: custom HAStrategies for that session
 ___
 
 # License

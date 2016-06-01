@@ -118,8 +118,11 @@ class Neo4jHA {
         return this.servers[this.masterIndex];
     }
 
-    getDriverBaseOnStrategyAndQueryWriteState(canWrite) {
-        const driver = strategies[this._strategy](this.servers, this._rwConfig, !canWrite);
+    getDriverBaseOnStrategyAndQueryWriteState(canWrite, rwConfig, strategy) {
+        rwConfig = rwConfig || this._rwConfig;
+        strategy = typeof strategy === 'number' ? strategy : this._strategy;
+
+        const driver = strategies[strategy](this.servers, rwConfig, !canWrite);
         if (driver) return driver;
 
         console.warn('Selected strategy and rwConfig didd not yield any usable servers, defaulting to master');
@@ -129,9 +132,11 @@ class Neo4jHA {
     /**
      *
      * @param {Boolean} writeLock - true if at least one query will perform a write
+     * @param {HAReadWrite} customRWConfig
+     * @param {HAStrategies} customStrategy
      */
-    session(writeLock) {
-        return new Session(this, writeLock);
+    session(writeLock, customRWConfig, customStrategy) {
+        return new Session(this, writeLock, customRWConfig, customStrategy);
     }
 
     close() {
@@ -144,15 +149,24 @@ class Session {
     /**
      * @param {Neo4jHA} driver
      * @param {Boolean} writeLock
+     * @param {HAReadWrite} customRWConfig
+     * @param {HAStrategies} customStrategy
      */
-    constructor(driver, writeLock) {
+    constructor(driver, writeLock, customRWConfig, customStrategy) {
         this.writeLock = writeLock;
+        this._customRWConfig = customRWConfig;
+        this._customStrategy = customStrategy;
         this._driver = driver;
         this._getSession();
     }
 
     _getSession() {
-        const server = this._driver.getDriverBaseOnStrategyAndQueryWriteState(this.writeLock);
+        const server = this._driver
+            .getDriverBaseOnStrategyAndQueryWriteState(
+                this.writeLock,
+                this._customRWConfig,
+                this._customStrategy
+            );
         if (!server) throw new Error('No server found, did you wait for all servers to reply?');
 
         this._session = server.driver.session();

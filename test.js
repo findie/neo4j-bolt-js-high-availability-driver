@@ -23,7 +23,7 @@ const driver = new Neo4jHA(servers, { auth, strategy, rwConfig }, () => {
         const bomb2 = timeouter('sub');
 
         console.log('Query will write=', writeLock);
-        const session = driver.session(writeLock);
+        const session = driver.session(writeLock, Neo4jHA.HAReadWrite.masterOnly, Neo4jHA.HAStrategies.random);
 
         session.run('return {a} as a', { a: 'a' })
             .then((a) => {

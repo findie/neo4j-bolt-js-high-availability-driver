@@ -175,42 +175,26 @@ class Session {
     }
 
     run(query, params) {
-        let ranQuery = false;
         const promiseEmulated = {
             then: (cb) => {
                 promiseEmulated._then = cb;
-
-                if (!ranQuery) {
-                    ranQuery = true;
-                    // we ste on next tick in so that we wait for atitiona stuff like catch or subscribe
-                    setImmediate(() => this._runQuery(query, params, promiseEmulated));
-                }
-
                 return promiseEmulated;
             },
             catch: (cb) => {
                 promiseEmulated._catch = cb;
-
-                if (!ranQuery) {
-                    ranQuery = true;
-                    setImmediate(() => this._runQuery(query, params, promiseEmulated));
-                }
-
                 return promiseEmulated;
             },
             subscribe: (subObj) => {
                 promiseEmulated._onNext = subObj.onNext;
                 promiseEmulated._onComplete = subObj.onCompleted;
                 promiseEmulated._onError = subObj.onError;
-
-                if (!ranQuery) {
-                    ranQuery = true;
-                    setImmediate(() => this._runQuery(query, params, promiseEmulated));
-                }
-
                 return promiseEmulated;
             }
         };
+
+        // we set on next tick in so that we wait for aditional stuff like then, catch or subscribe
+        setImmediate(() => this._runQuery(query, params, promiseEmulated));
+
         return promiseEmulated;
     }
 

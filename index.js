@@ -266,6 +266,10 @@ class Session {
         });
     }
 
+    beginTransaction() {
+        return this._session.beginTransaction();
+    }
+
     close() {
         this._session.close();
     }

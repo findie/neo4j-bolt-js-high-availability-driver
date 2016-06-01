@@ -11,6 +11,8 @@ const enums = require('./enums');
  * @private
  */
 const checkIfCanUse = (server, rwConfig, readOnlyQuery) => {
+    if (!server.info) return false;
+
     if (
         server.info.status !== enums.Status.up ||
         server.info.type === enums.ServerType.unknown) {
@@ -79,4 +81,4 @@ const roundRobin = (servers, rwConfig, readOnlyQuery) => {
     return servers[_rrIndex];
 };
 
-module .exports = [random, roundRobin, nearest];
+module.exports = [random, roundRobin, nearest];

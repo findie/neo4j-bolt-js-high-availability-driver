@@ -88,3 +88,21 @@ const queryIsReadOnly = (query) => {
 };
 
 module.exports.queryIsReadOnly = queryIsReadOnly;
+
+module.exports.timeouter = function(msg) {
+    const start = Date.now();
+
+
+    const stopTO = () => {
+        clearInterval(int);
+    };
+
+    const checkTO = () => {
+        if (Date.now() - start > 200) {
+            throw msg || 'i timed out';
+        }
+    };
+    const int = setInterval(checkTO, 10);
+
+    return stopTO;
+};

@@ -30,6 +30,7 @@ const Status = require('./enums').Status;
 /**
  * @typedef {Object} ServerLocation
  * @property {String} url
+ * @property {String} bolt
  * @property {Credentials} [auth={}]
  */
 
@@ -45,22 +46,23 @@ const Status = require('./enums').Status;
 class Neo4jHA {
     /**
      * @constructor
-     * @param {Array.<ServerLocation|String>} serverLocations
+     * @param {Array.<ServerLocation|String[]>} serverLocations
      * @param {Neo4jHAOptions} options
      * @param {function()} ready
      */
     constructor(serverLocations, options, ready) {
         options.strategy = options.strategy || HAStrategies.random;
-        options.rwConfig = options.rwConfig || HAReadWrite.masterReadWrite;
+        options.rwConfig = options.rwConfig || HAReadWrite.masterReadWriteSlaveRead;
         options.checkInterval = options.checkInterval || 500;
 
         this._strategy = options.strategy;
         this._rwConfig = options.rwConfig;
 
         this._locations = serverLocations.map(location => {
-            if (typeof location === 'string') {
+            if (Array.isArray(location)) {
                 return {
-                    url: location,
+                    url: location[0],
+                    bolt: location[1],
                     auth: options.auth || undefined
                 }
             }
@@ -77,7 +79,7 @@ class Neo4jHA {
             this.servers.push({
                 location,
                 driver: neo4j.driver(
-                    location.url,
+                    location.bolt,
                     auth,
                     options.neo4jDriverOptions
                 ),
@@ -118,9 +120,9 @@ class Neo4jHA {
 
     getDriverBaseOnStrategyAndQueryWriteState(canWrite) {
         const driver = strategies[this._strategy](this.servers, this._rwConfig, !canWrite);
-        if(driver) return driver;
+        if (driver) return driver;
 
-        consle.warn('Selected strategy and rwConfig didd not yield any usable servers, defaulting to master');
+        console.warn('Selected strategy and rwConfig didd not yield any usable servers, defaulting to master');
         return this.servers[this.masterIndex];
     }
 
@@ -129,13 +131,143 @@ class Neo4jHA {
      * @param {Boolean} writeLock - true if at least one query will perform a write
      */
     session(writeLock) {
-        const server = this.getDriverBaseOnStrategyAndQueryWriteState(writeLock);
-        return server.driver.session();
+        return new Session(this, writeLock);
     }
 
     close() {
         clearInterval(this._interv);
         this.servers.forEach(s => s.close());
+    }
+}
+
+class Session {
+    /**
+     * @param {Neo4jHA} driver
+     * @param {Boolean} writeLock
+     */
+    constructor(driver, writeLock) {
+        this.writeLock = writeLock;
+        this._driver = driver;
+        this._getSession();
+    }
+
+    _getSession() {
+        const server = this._driver.getDriverBaseOnStrategyAndQueryWriteState(this.writeLock);
+        if (!server) throw new Error('No server found, did you wait for all servers to reply?');
+
+        this._session = server.driver.session();
+        this._server = server;
+        this._dummyFn = () => undefined;
+    }
+
+    run(query, params) {
+        let ranQuery = false;
+        const promiseEmulated = {
+            then: (cb) => {
+                promiseEmulated._then = cb;
+
+                if (!ranQuery) {
+                    ranQuery = true;
+                    // we ste on next tick in so that we wait for atitiona stuff like catch or subscribe
+                    setImmediate(() => this._runQuery(query, params, promiseEmulated));
+                }
+
+                return promiseEmulated;
+            },
+            catch: (cb) => {
+                promiseEmulated._catch = cb;
+
+                if (!ranQuery) {
+                    ranQuery = true;
+                    setImmediate(() => this._runQuery(query, params, promiseEmulated));
+                }
+
+                return promiseEmulated;
+            },
+            subscribe: (subObj) => {
+                promiseEmulated._onNext = subObj.onNext;
+                promiseEmulated._onComplete = subObj.onCompleted;
+                promiseEmulated._onError = subObj.onError;
+
+                if (!ranQuery) {
+                    ranQuery = true;
+                    setImmediate(() => this._runQuery(query, params, promiseEmulated));
+                }
+
+                return promiseEmulated;
+            }
+        };
+        return promiseEmulated;
+    }
+
+    _runQuery(query, params, promiseEmulated) {
+        let errorFunction = (err) => {
+            if (err.code === 'EPIPE' || err.code === 'ECONNREFUSED') {
+                return false;
+            }
+
+            return true;
+        };
+
+        const run = this._session.run(query, params);
+
+        if (promiseEmulated._then || promiseEmulated._catch) {
+            run.then((data) => {
+                data.servedBy = { location: this._server.location, info: this._server.info };
+                if (promiseEmulated._then) promiseEmulated._then(data)
+            });
+
+            run.catch((err) => {
+                const shouldContinueError = errorFunction(err);
+
+                if (shouldContinueError) {
+                    if (promiseEmulated._catch) promiseEmulated._catch(err);
+                }
+
+                if (!shouldContinueError) {
+                    this._retry(query, params, promiseEmulated);
+                }
+            });
+
+            return;
+        }
+
+        run.subscribe({
+            onNext: promiseEmulated._onNext || this._dummyFn,
+            onCompleted: (summary) => {
+                summary.servedBy = { location: this._server.location, info: this._server.info };
+                if (promiseEmulated._onComplete) promiseEmulated._onComplete(summary)
+            },
+            onError: (err) => {
+                const shouldContinueError = errorFunction(err);
+
+                if (shouldContinueError) {
+                    if (promiseEmulated._onError) promiseEmulated._onError(err);
+                }
+
+                if (!shouldContinueError) {
+                    this._retry(query, params, promiseEmulated);
+                }
+            }
+        });
+    }
+
+    _retry(query, params, promiseEmulated) {
+        console.error('Averting downed server!~~~~~~~~~~~~~~~~~~~~~~~~~~', this._server.location.bolt);
+
+        this._session.close();
+        this._server.info.status = Status.unknown;
+
+        this._getSession();
+
+        setImmediate(() => {
+            console.error('query will retry with ', this._server.location.bolt);
+            this._runQuery(query, params, promiseEmulated, 1);
+        });
+    }
+
+    close() {
+        this._session.close();
     }
 }
 

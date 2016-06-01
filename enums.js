@@ -19,13 +19,17 @@ const HAReadWrite = {
         master: { read: true, write: true },
         slave: { read: false, write: false }
     },
-    masterWriteOnly: {
+    masterWriteOnlySlaveReadOnly: {
         master: { read: false, write: true },
         slave: { read: true, write: false }
     },
-    masterReadWrite: {
-        master: {read: true, write: true},
-        slave: {read: true, write: false}
+    masterReadWriteSlaveRead: {
+        master: { read: true, write: true },
+        slave: { read: true, write: false }
+    },
+    all: {
+        master: { read: true, write: true },
+        slave: { read: true, write: true }
     }
 };
 

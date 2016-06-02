@@ -82,7 +82,8 @@ ___
 ___
 
 # Instantiating a driver
-`const driver = new Neo4jHA(serverList, options, readyCallback);`;
+`const driver = new Neo4jHA(serverList, options, readyCallback);`
+
 Where:
 - `serverList`: is an array of 
     - `[HTTP URL, BOLT URL]`
@@ -97,10 +98,12 @@ Where:
 
 # Usage
 `const session = driver.session(writeLock[, rwConfig, strategy]);`
+
 Where: 
 - `writeLock`: Boolean - Tell the driver ifif there will ve any writes in the session
 - `rwConfig`: custom HAReadWriteConfig for that session
 - `strategy`: custom HAStrategies for that session
+
 ___
 
 # License

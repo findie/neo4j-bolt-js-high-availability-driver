@@ -167,10 +167,22 @@ class Session {
                 this._customRWConfig,
                 this._customStrategy
             );
-        if (!server) throw new Error('No server found, did you wait for all servers to reply?');
-
-        this._session = server.driver.session();
         this._server = server;
+        if (!server) {
+            // if there is no server chosen
+            // it may mean a couple of things
+            // we didn't wait for the ready callback
+            // no servers are up
+            // server is not in HA mode
+
+            // we warn
+            console.warn('All servers are down or the servers are not in HA mode!');
+            // in this case
+            // we chose the 1st server
+            this._server = this._driver.servers[0];
+        }
+
+        this._session = this._server.driver.session();
         this._dummyFn = () => undefined;
     }
 

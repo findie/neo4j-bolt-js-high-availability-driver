@@ -4,6 +4,9 @@ _Neo4j cluster session and transparent failover_
 # About
 This driver is a wrapper over the [official Neo4j bolt driver](https://github.com/neo4j/neo4j-javascript-driver) and adds a layer of High Availability and transparent failovers
 
+# How to install
+`npm i --save neo4j-ha-bolt-driver`
+
 # Quick example
 
 ```javascript

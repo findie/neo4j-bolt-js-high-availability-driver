@@ -97,6 +97,7 @@ Where:
     - `rwConfig`: HAReadWriteConfig
     - `neo4jDriverOptions`: options passed on the the raw neo4j bolt driver
     - `checkInterval`: interval to check servers availability
+    - `retryOnError`: number of times to retry the query until the error is surfaced in callback
 - `readyCallback`: callback when all servers status is known 
 
 # Usage

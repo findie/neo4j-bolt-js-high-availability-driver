@@ -1,6 +1,6 @@
 {
   "name": "neo4j-ha-bolt-driver",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Oficial Neo4j Bolt driver wrapped in a layer of High Availability",
   "main": "index.js",
   "repository": {

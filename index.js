@@ -41,6 +41,7 @@ const Status = require('./enums').Status;
  * @property {HAReadWriteConfig} rwConfig
  * @property {Object} neo4jDriverOptions
  * @property {Number} [checkInterval=500]
+ * @property {Number} [retryOnError=0]
  */
 
 class Neo4jHA {
@@ -57,6 +58,7 @@ class Neo4jHA {
 
         this._strategy = options.strategy;
         this._rwConfig = options.rwConfig;
+        this._retryOnError = options.retryOnError || 0;
 
         this._locations = serverLocations.map(location => {
             if (Array.isArray(location)) {
@@ -205,13 +207,17 @@ class Session {
         };
 
         // we set on next tick in so that we wait for aditional stuff like then, catch or subscribe
-        setImmediate(() => this._runQuery(query, params, promiseEmulated));
+        setImmediate(() => this._runQuery(query, params, promiseEmulated, 0));
 
         return promiseEmulated;
     }
 
-    _runQuery(query, params, promiseEmulated) {
+    _runQuery(query, params, promiseEmulated, retryCount) {
         let errorFunction = (err) => {
+            if(retryCount >= this._driver._retryOnError){
+                return true;
+            }
+
             if (err.code === 'EPIPE' || err.code === 'ECONNREFUSED') {
                 return false;
             }
@@ -235,7 +241,7 @@ class Session {
                 }
 
                 if (!shouldContinueError) {
-                    this._retry(query, params, promiseEmulated);
+                    this._retry(query, params, promiseEmulated, retryCount);
                 }
             });
 
@@ -256,20 +262,20 @@ class Session {
                 }
 
                 if (!shouldContinueError) {
-                    this._retry(query, params, promiseEmulated);
+                    this._retry(query, params, promiseEmulated, retryCount);
                 }
             }
         });
     }
 
-    _retry(query, params, promiseEmulated) {
+    _retry(query, params, promiseEmulated, retryCount) {
         this._session.close();
         this._server.info.status = Status.unknown;
 
         this._getSession();
 
         setImmediate(() => {
-            this._runQuery(query, params, promiseEmulated, 1);
+            this._runQuery(query, params, promiseEmulated, retryCount + 1);
         });
     }
 

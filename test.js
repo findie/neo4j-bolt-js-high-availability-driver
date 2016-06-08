@@ -10,12 +10,13 @@ const servers = [
 const auth = { user: 'neo4j', pass: 'password' };
 const strategy = Neo4jHA.HAStrategies.roundRobin;
 const rwConfig = Neo4jHA.HAReadWrite.all;
+const retryOnError = 2;
 
 console.log('connecting...');
-const driver = new Neo4jHA(servers, { auth, strategy, rwConfig }, () => {
+const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, retryOnError }, () => {
     console.log('ready');
 
-    setInterval(() => {
+    setTimeout(() => {
         console.log('\n\n');
         const writeLock = Math.random() > .5;
 

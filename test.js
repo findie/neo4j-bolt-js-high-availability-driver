@@ -10,18 +10,19 @@ const servers = [
 const auth = { user: 'neo4j', pass: 'password' };
 const strategy = Neo4jHA.HAStrategies.roundRobin;
 const rwConfig = Neo4jHA.HAReadWrite.all;
-const retryOnError = 2;
+const retryOnError = 0;
+const badConnectionsCountAsErrors = true;
 
 console.log('connecting...');
-const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, retryOnError }, () => {
+const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, retryOnError, badConnectionsCountAsErrors }, () => {
     console.log('ready');
 
     setTimeout(() => {
         console.log('\n\n');
         const writeLock = Math.random() > .5;
 
-        const bomb1 = timeouter('then');
-        const bomb2 = timeouter('sub');
+        const bomb1 = () => null;//timeouter('then');
+        const bomb2 = () => null;//timeouter('sub');
 
         console.log('Query will write=', writeLock);
         const session = driver.session(writeLock, Neo4jHA.HAReadWrite.masterOnly, Neo4jHA.HAStrategies.random);

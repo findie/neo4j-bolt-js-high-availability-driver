@@ -72,15 +72,15 @@ ___
 ```
 
 #### Status
-- `error (-2)`: Server is returning an error in the HA check
+- `error   (-2)`: Server is returning an error in the HA check
 - `unknown (-1)`: Server is in an unknown state
-- `down (0)`: Server is unreachable
-- `up (1)`: Server is in the cluster
+- `down    ( 0)`: Server is unreachable
+- `up      ( 1)`: Server is in the cluster
 
 #### ServerType
-- `unknown (0)`: Server is in an unknown state
-- `slave (1)`: Server is a slave
-- `master(2)`: server is master
+- `unknown ( 0)`: Server is in an unknown state
+- `slave   ( 1)`: Server is a slave
+- `master  ( 2)`: server is master
 
 ___
 
@@ -98,6 +98,7 @@ Where:
     - `neo4jDriverOptions`: options passed on the the raw neo4j bolt driver
     - `checkInterval`: interval to check servers availability
     - `retryOnError`: number of times to retry the query until the error is surfaced in callback
+    - `badConnectionsCountAsErrors`: true if a server connection error is counted as an error 
 - `readyCallback`: callback when all servers status is known 
 
 # Usage

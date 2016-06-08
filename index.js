@@ -41,7 +41,8 @@ const Status = require('./enums').Status;
  * @property {HAReadWriteConfig} rwConfig
  * @property {Object} neo4jDriverOptions
  * @property {Number} [checkInterval=500]
- * @property {Number} [retryOnError=0]
+ * @property {Number} [retryOnError=10]
+ * @property {Boolean} [badConnectionsCountAsErrors=false]
  */
 
 class Neo4jHA {
@@ -55,10 +56,13 @@ class Neo4jHA {
         options.strategy = options.strategy || HAStrategies.random;
         options.rwConfig = options.rwConfig || HAReadWrite.masterReadWriteSlaveRead;
         options.checkInterval = options.checkInterval || 500;
+        options.retryOnError = options.retryOnError === undefined ? 10 : options.retryOnError;
+        options.badConnectionsCountAsErrors = options.badConnectionsCountAsErrors || false;
 
         this._strategy = options.strategy;
         this._rwConfig = options.rwConfig;
-        this._retryOnError = options.retryOnError || 0;
+        this._retryOnError = options.retryOnError;
+        this._badConnectionsCountAsErrors = options.badConnectionsCountAsErrors;
 
         this._locations = serverLocations.map(location => {
             if (Array.isArray(location)) {
@@ -214,15 +218,16 @@ class Session {
 
     _runQuery(query, params, promiseEmulated, retryCount) {
         let errorFunction = (err) => {
-            if(retryCount >= this._driver._retryOnError){
+            const connError = err.code === 'EPIPE' || err.code === 'ECONNREFUSED';
+
+            if(connError && this._driver._badConnectionsCountAsErrors) retryCount++;
+            if(!connError) retryCount ++;
+
+            if (retryCount > this._driver._retryOnError) {
                 return true;
             }
 
-            if (err.code === 'EPIPE' || err.code === 'ECONNREFUSED') {
-                return false;
-            }
-
-            return true;
+            return false;
         };
 
         const run = this._session.run(query, params);
@@ -275,7 +280,7 @@ class Session {
         this._getSession();
 
         setImmediate(() => {
-            this._runQuery(query, params, promiseEmulated, retryCount + 1);
+            this._runQuery(query, params, promiseEmulated, retryCount);
         });
     }
 

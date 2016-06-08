@@ -287,3 +287,4 @@ module.exports.Status = Status;
 module.exports.ServerType = ServerType;
 module.exports.HAReadWrite = HAReadWrite;
 module.exports.HAStrategies = HAStrategies;
+module.exports.driver = neo4j;

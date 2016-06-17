@@ -193,35 +193,33 @@ class Session {
     }
 
     run(query, params) {
-        const promiseEmulated = {
-            then: (cb) => {
-                promiseEmulated._then = cb;
-                return promiseEmulated;
-            },
-            catch: (cb) => {
-                promiseEmulated._catch = cb;
-                return promiseEmulated;
-            },
-            subscribe: (subObj) => {
-                promiseEmulated._onNext = subObj.onNext;
-                promiseEmulated._onComplete = subObj.onCompleted;
-                promiseEmulated._onError = subObj.onError;
-                return promiseEmulated;
-            }
+        const promiseEmulated = {};
+
+        const promise = new Promise((resolve, reject) => {
+            promiseEmulated._then = resolve;
+            promiseEmulated._catch = reject;
+        });
+
+        promise.subscribe = (subObj) => {
+            promiseEmulated._onNext = subObj.onNext;
+            promiseEmulated._onComplete = subObj.onCompleted;
+            promiseEmulated._onError = subObj.onError;
+            promiseEmulated.__subscribed__ = true;
+            return promise;
         };
 
         // we set on next tick in so that we wait for aditional stuff like then, catch or subscribe
         setImmediate(() => this._runQuery(query, params, promiseEmulated, 0));
 
-        return promiseEmulated;
+        return promise;
     }
 
     _runQuery(query, params, promiseEmulated, retryCount) {
         let errorFunction = (err) => {
             const connError = err.code === 'EPIPE' || err.code === 'ECONNREFUSED';
 
-            if(connError && this._driver._badConnectionsCountAsErrors) retryCount++;
-            if(!connError) retryCount ++;
+            if (connError && this._driver._badConnectionsCountAsErrors) retryCount++;
+            if (!connError) retryCount++;
 
             if (retryCount > this._driver._retryOnError) {
                 return true;
@@ -232,43 +230,44 @@ class Session {
 
         const run = this._session.run(query, params);
 
-        if (promiseEmulated._then || promiseEmulated._catch) {
-            run.then((data) => {
-                data.servedBy = { location: this._server.location, info: this._server.info };
-                if (promiseEmulated._then) promiseEmulated._then(data)
-            });
 
-            run.catch((err) => {
-                const shouldContinueError = errorFunction(err);
+        if (promiseEmulated.__subscribed__) {
+            run.subscribe({
+                onNext: promiseEmulated._onNext || this._dummyFn,
+                onCompleted: (summary) => {
+                    summary.servedBy = { location: this._server.location, info: this._server.info };
+                    if (promiseEmulated._onComplete) promiseEmulated._onComplete(summary)
+                },
+                onError: (err) => {
+                    const shouldContinueError = errorFunction(err);
 
-                if (shouldContinueError) {
-                    if (promiseEmulated._catch) promiseEmulated._catch(err);
-                }
+                    if (shouldContinueError) {
+                        if (promiseEmulated._onError) promiseEmulated._onError(err);
+                    }
 
-                if (!shouldContinueError) {
-                    this._retry(query, params, promiseEmulated, retryCount);
+                    if (!shouldContinueError) {
+                        this._retry(query, params, promiseEmulated, retryCount);
+                    }
                 }
             });
 
             return;
         }
 
-        run.subscribe({
-            onNext: promiseEmulated._onNext || this._dummyFn,
-            onCompleted: (summary) => {
-                summary.servedBy = { location: this._server.location, info: this._server.info };
-                if (promiseEmulated._onComplete) promiseEmulated._onComplete(summary)
-            },
-            onError: (err) => {
-                const shouldContinueError = errorFunction(err);
+        run.then((data) => {
+            data.servedBy = { location: this._server.location, info: this._server.info };
+            if (promiseEmulated._then) promiseEmulated._then(data)
+        });
 
-                if (shouldContinueError) {
-                    if (promiseEmulated._onError) promiseEmulated._onError(err);
-                }
+        run.catch((err) => {
+            const shouldContinueError = errorFunction(err);
 
-                if (!shouldContinueError) {
-                    this._retry(query, params, promiseEmulated, retryCount);
-                }
+            if (shouldContinueError) {
+                if (promiseEmulated._catch) promiseEmulated._catch(err);
+            }
+
+            if (!shouldContinueError) {
+                this._retry(query, params, promiseEmulated, retryCount);
             }
         });
     }

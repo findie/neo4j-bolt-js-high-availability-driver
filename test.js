@@ -14,7 +14,13 @@ const retryOnError = 0;
 const badConnectionsCountAsErrors = true;
 
 console.log('connecting...');
-const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, retryOnError, badConnectionsCountAsErrors }, () => {
+const driver = new Neo4jHA(servers, {
+    auth,
+    strategy,
+    rwConfig,
+    retryOnError,
+    badConnectionsCountAsErrors
+}, () => {
     console.log('ready');
 
     setTimeout(() => {
@@ -65,6 +71,30 @@ const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, retryOnError, ba
                 onError: (e) => {
                     throw e;
                 }
+            });
+
+
+        const session3 = driver.session(writeLock);
+        Promise.all([
+                session3.run('return 1.0 as a'),
+                session3.run('return 2.0 as b'),
+                session3.run('return 3.0 as c')
+            ])
+            .catch(e => {
+                throw e;
+            })
+            .then(data => {
+                console.log(
+                    data[0].records[0]._fields,
+                    data[1].records[0]._fields,
+                    data[2].records[0]._fields
+                );
+                console.log(
+                    'PromiseAll => !',
+                    'served by', data[0].servedBy.location.bolt,
+                    '| master=', data[0].servedBy.info.type === Neo4jHA.ServerType.master
+                );
+                session.close();
             });
     }, 100);
 });

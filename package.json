@@ -1,6 +1,6 @@
 {
   "name": "neo4j-ha-bolt-driver",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Official Neo4j Bolt driver wrapped in a layer of High Availability",
   "main": "index.js",
   "repository": {
@@ -23,7 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "async": "^2.0.0-rc.5",
-    "neo4j-driver": "^1.0.1",
+    "neo4j-driver": "^1.0.2",
     "request": "^2.72.0"
   }
 }

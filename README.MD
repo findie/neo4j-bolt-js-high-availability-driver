@@ -25,7 +25,7 @@ const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, checkInterval },
     console.log('ready');
     let session;
   
-    // we get a session and we tell the driver that we will berform at least one write
+    // we get a session and we tell the driver that we will perform at least one write
     // the strategy is Round Robin but because we want to write 
     // and the read/write config is set to masterReadWriteSlaveRead (only master can write) 
     // this means that it will get a session to the master 

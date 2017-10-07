@@ -1,3 +1,8 @@
+# Unmaintained
+When Neo4j 3.1 was introduced, it also came along with a new clustering protocol, `bolt+routing://`. We believe that the new casual cluster protocol is superior to the high availability one and we switched to the new official driver from neo4j ([found here](https://github.com/neo4j/neo4j-javascript-driver)), thus deprecating this one.
+
+If you are still using this driver wrapper, we are happy to receive PR's to make it better.
+
 # Neo4j High Availability Bolt Javascript Driver
 _Neo4j cluster session and transparent failover_
 

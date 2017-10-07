@@ -39,7 +39,7 @@ const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, checkInterval },
     // don't forget to close sessions when you're done with them
     session.close();
     
-    // now we request a read-only  session, so all servers are eligible for conenctions
+    // now we request a read-only session, so all servers are eligible for conenctions
     // the first server in the list is chosen
     session = driver.session(false);
     session.close();
@@ -48,10 +48,10 @@ const driver = new Neo4jHA(servers, { auth, strategy, rwConfig, checkInterval },
     // because of the Round Robin 
     session = driver.session();
     session.close();
-}
 
-// when you are done with the driver, just close it
-driver.close();
+    // when you are done with the driver, just close it
+    driver.close();
+})
 ```
 
 ___
